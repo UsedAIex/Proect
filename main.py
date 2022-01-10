@@ -1,89 +1,68 @@
 import pygame
 
-choose_map = None
-map_1 = None
-map_2 = None
-class Otobraz:
-    def __init__(self):
-        pygame.init()
-        size = width, height = 800, 700
-        screen = pygame.display.set_mode(size)
-        pygame.display.set_caption("Тесты")
-        self.choose_map = choose_map
-        self.map_1 = map_1
-        self.map_2 = map_2
+# Задача лучше проработать классы, исправит баги в коде для стрельбы, приделать пуле картинку и добавить взрывы.
 
-        running = True
-        # Start screen
-        self.draw_menu(screen, width, height)
-        while running:
+
+class Level:
+    def __init__(self):
+        self.sten = pygame.image.load('стенки.png')
+        self.sten2 = pygame.image.load('стенки2.png')
+        self.running = True
+        self.graniz = True
+        self.clock = pygame.time.Clock()
+        self.x = 600
+        self.y = 700
+        self.speed = 0.07
+
+    def sickl(self):
+        global lastMove
+        pygame.init()
+        pygame.display.set_caption('Танки')
+        size = width, height = 800, 800
+        self.screen = pygame.display.set_mode(size)
+        self.sten_verh = self.sten.get_rect(center=(332, -15))
+        self.sten_niz = self.sten.get_rect(center=(332, 815))
+        self.sten_left = self.sten2.get_rect(center=(-15, 355))
+        self.sten_right = self.sten2.get_rect(center=(815, 355))
+        self.sten_verh_dal = self.sten.get_rect(center=(532, -15))
+        self.sten_niz_dal = self.sten.get_rect(center=(532, 815))
+        self.sten_left_dal = self.sten2.get_rect(center=(-15, 555))
+        self.sten_right_dal = self.sten2.get_rect(center=(815, 555))
+        bullets = []
+        while self.running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running = False
-                if event.type == pygame.MOUSEBUTTONDOWN:
-                    x = self.start_game_btn_coords[0]
-                    y = self.start_game_btn_coords[1]
-                    x1 = x + self.start_game_btn_coords[2]
-                    y1 = y + self.start_game_btn_coords[3]
-                    if self.map_1:
-                        x_map_1 = self.map_1[0]
-                        y_map_1 = self.map_1[1]
-                        x1_map_1 = x_map_1 + self.map_1[2]
-                        y1_map_1 = y_map_1 + self.map_1[3]
-                        if x_map_1 < event.pos[0] < x1_map_1 and y_map_1 < event.pos[1] < y1_map_1:
-                            self.choose_map = 'map_1'
-                            draw_lvl(screen, self.choose_map, self.map_1, self.map_2)
-                    if self.map_2:
-                        x_map_2 = self.map_2[0]
-                        y_map_2 = self.map_2[1]
-                        x2_map_2 = x_map_2 + self.map_2[2]
-                        y2_map_2 = y_map_2 + self.map_2[3]
-                        if x_map_2 < event.pos[0] < x2_map_2 and y_map_2 < event.pos[1] < y2_map_2:
-                            self.choose_map = 'map_2'
-                            draw_lvl(screen, self.choose_map, self.map_1, self.map_2)
-                    if x < event.pos[0] < x1 and y < event.pos[1] < y1:
-                        self.start(screen)
-            pygame.display.flip()
+                    self.running = False
 
 
+            keys = pygame.key.get_pressed()
 
-        # First level screen
-        # обновляешь экран, формируешь новую картинку, новый игровой цикл,
+            if keys[pygame.K_LEFT] and self.x > 20:
+                self.x -= self.speed
+                lastMove = 'left'
+            if keys[pygame.K_RIGHT] and self.x < 731:
+                self.x += self.speed
+                lastMove = 'right'
+            if keys[pygame.K_UP] and self.y > 20:
+                self.y -= self.speed
+                lastMove = 'up'
+            if keys[pygame.K_DOWN] and self.y < 740:
+                self.y += self.speed
+                lastMove = 'down'
+            self.screen.fill('white')
+            pygame.draw.rect(self.screen, 'blue', (self.x, self.y, 40, 40))
+            self.screen.blit(self.sten, self.sten_verh)
+            self.screen.blit(self.sten, self.sten_niz)
+            self.screen.blit(self.sten2, self.sten_left)
+            self.screen.blit(self.sten2, self.sten_right)
+            self.screen.blit(self.sten, self.sten_verh_dal)
+            self.screen.blit(self.sten, self.sten_niz_dal)
+            self.screen.blit(self.sten2, self.sten_left_dal)
+            self.screen.blit(self.sten2, self.sten_right_dal)
+            pygame.display.update()
         pygame.quit()
-
-    def start(self, screen):
-        screen.fill((0, 0, 0))
-
-    def draw_menu(self, screen, width, height):
-        font = pygame.font.Font(None, 50)
-        text = font.render("Танчики", True, (100, 255, 100))
-        text_start = font.render("Играть", True, (100, 255, 100))
-        text_x = width // 2 - text.get_width() // 2
-        text_x_start = width // 2 - text_start.get_width() // 2
-        text_y = height - 105 - text_start.get_height() // 2
-        text_w = text_start.get_width()
-        text_h = text_start.get_height()
-        screen.blit(text, (text_x, 100))
-        screen.blit(text_start, (text_x_start, screen.get_height() - 120))
-        self.start_game_btn_coords = (text_x_start - 10, text_y - 10,
-                                      text_w + 20, text_h + 20)
-        pygame.draw.rect(screen, (0, 255, 0), self.start_game_btn_coords, 1)
-        self.map_1 = (width - 730, height - 500, 300, 300)
-        pygame.draw.rect(screen, (0, 255, 0), self.map_1, 1)
-        self.map_2 = (width - 350, height - 500, 300, 300)
-        pygame.draw.rect(screen, (0, 255, 0), self.map_2, 1)
-
-
-def draw_lvl(screen, choose_map, map_1, map_2):
-    print(map_1, map_2)
-    if choose_map == 'map_1':
-        pygame.draw.rect(screen, (0, 255, 0), map_1, 0)
-        pygame.draw.rect(screen, (0, 255, 0), map_2, 1)
-    if choose_map == 'map_2':
-        pygame.draw.rect(screen, (0, 255, 0), map_1, 1)
-        pygame.draw.rect(screen, (0, 255, 0), map_2, 0)
-    pygame.display.flip()
 
 
 if __name__ == '__main__':
-    Otobraz()
+    lv = Level()
+    lv.sickl()
