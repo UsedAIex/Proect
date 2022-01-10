@@ -1,123 +1,109 @@
 import pygame
 
-# Задача лучше проработать классы, исправит баги в коде для стрельбы, приделать пуле картинку и добавить взрывы.
-lastMove = 'up'
-bullet_img = pygame.image.load('snaryd.png')
+choose_map = None
+map_1 = None
+map_2 = None
+pygame.init()
 
 
-class Bullet:
-    def __init__(self, x, y):
-        self.x_bul = x
-        self.y_bul = y
-        self.speed_bul = 8
+class Otobraz:
+    def __init__(self):
 
-    def move(self):
-        global lastMove
-        if lastMove == 'up':
-            if self.x_bul > 20 and self.y_bul < 740:
-                self.y_bul += self.speed_bul
-                screen.blit(bullet_img, (self.x_bul, self.y_bul))
-                return True
+        size = width, height = 800, 700
+        screen = pygame.display.set_mode(size)
+        pygame.display.set_caption("Тесты")
+        self.choose_map = choose_map
+        self.map_1_size = None
+        self.map_2_size = None
 
 
-        elif lastMove == 'down':
-            if self.y_bul > 20 and self.y_bul < 740:
-                self.y_bul -= self.speed_bul
-                screen.blit(bullet_img, (self.x_bul, self.y_bul))
-                return True
+        # Start screen
+        self.draw_menu(screen, width, height)
+        self.game(screen)
 
-        elif lastMove == 'left':
-            if self.x_bul > 20 and self.y_bul < 740:
-                self.x_bul -= self.speed_bul
-                screen.blit(bullet_img, (self.x_bul, self.y_bul))
-                return True
-
-        elif lastMove == 'right':
-            if self.x_bul > 20 and self.y_bul < 731:
-                self.x_bul += self.speed_bul
-                screen.blit(bullet_img, (self.x_bul, self.y_bul))
-                return True
-
-        else:
-            return False
-
-
-class Level(Bullet):
-    def __init__(self, screen):
-        super(Bullet, self).__init__()
-        self.sten = pygame.image.load('стенки.png')
-        self.sten2 = pygame.image.load('стенки2.png')
-        self.running = True
-        self.graniz = True
-        self.clock = pygame.time.Clock()
-        self.x = 500
-        self.y = 700
-        self.speed = 0.1
-        self.screen = screen
-
-    def sickl(self):
-        global lastMove
-        self.sten_verh = self.sten.get_rect(center=(332, -15))
-        self.sten_niz = self.sten.get_rect(center=(332, 815))
-        self.sten_left = self.sten2.get_rect(center=(-15, 355))
-        self.sten_right = self.sten2.get_rect(center=(815, 355))
-        self.sten_verh_dal = self.sten.get_rect(center=(532, -15))
-        self.sten_niz_dal = self.sten.get_rect(center=(532, 815))
-        self.sten_left_dal = self.sten2.get_rect(center=(-15, 555))
-        self.sten_right_dal = self.sten2.get_rect(center=(815, 555))
-        bullets = []
-        while self.running:
+    def game(self, screen):
+        running = True
+        while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    self.running = False
+                    running = False
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    x = self.start_game_btn_coords[0]
+                    y = self.start_game_btn_coords[1]
+                    x1 = x + self.start_game_btn_coords[2]
+                    y1 = y + self.start_game_btn_coords[3]
+                    if self.map_1_size:
+                        x_map_1 = self.map_1_size[0]
+                        y_map_1 = self.map_1_size[1]
+                        x1_map_1 = x_map_1 + self.map_1_size[2]
+                        y1_map_1 = y_map_1 + self.map_1_size[3]
+                        if x_map_1 < event.pos[0] < x1_map_1 and y_map_1 < event.pos[1] < y1_map_1:
+                            self.choose_map = 'map_1'
+                            draw_lvl(screen, self.choose_map, self.map_1_size, self.map_2_size)
+                    if self.map_2_size:
+                        x_map_2 = self.map_2_size[0]
+                        y_map_2 = self.map_2_size[1]
+                        x2_map_2 = x_map_2 + self.map_2_size[2]
+                        y2_map_2 = y_map_2 + self.map_2_size[3]
+                        if x_map_2 < event.pos[0] < x2_map_2 and y_map_2 < event.pos[1] < y2_map_2:
+                            self.choose_map = 'map_2'
+                            draw_lvl(screen, self.choose_map, self.map_1_size, self.map_2_size)
+                    if x < event.pos[0] < x1 and y < event.pos[1] < y1:
+                        if not self.choose_map:
+                            self.error(screen, width, height)
+                        else:
+                            print(12345)
+                        # self.start(screen, self.choose_map)
+            pygame.display.flip()
 
-            keys = pygame.key.get_pressed()
-            if keys[pygame.K_x]:
-                bullets.append(Bullet(self.x, self.y))
-
-            for bullet in bullets:
-                if not bullet.move():
-                    bullets.remove(bullet)
-
-            if keys[pygame.K_LEFT] and self.x > 20:
-                if keys[pygame.K_LEFT] and not keys[pygame.K_UP]:
-                    if keys[pygame.K_LEFT] and not keys[pygame.K_UP]:
-                        self.x -= self.speed
-                        lastMove = 'left'
-
-            if keys[pygame.K_RIGHT] and self.x < 731:
-                if keys[pygame.K_RIGHT] and not keys[pygame.K_UP]:
-                    if keys[pygame.K_RIGHT] and not keys[pygame.K_DOWN]:
-                        self.x += self.speed
-                        lastMove = 'right'
-
-            if keys[pygame.K_UP] and self.y > 20:
-                self.y -= self.speed
-                lastMove = 'up'
-
-            if keys[pygame.K_DOWN] and self.y < 740:
-                if keys[pygame.K_DOWN] and not keys[pygame.K_LEFT]:
-                    if keys[pygame.K_DOWN] and not keys[pygame.K_RIGHT]:
-                        self.y += self.speed
-                        lastMove = 'down'
-
-            self.screen.fill('white')
-            pygame.draw.rect(self.screen, 'blue', (self.x, self.y, 40, 40))
-            self.screen.blit(self.sten, self.sten_verh)
-            self.screen.blit(self.sten, self.sten_niz)
-            self.screen.blit(self.sten2, self.sten_left)
-            self.screen.blit(self.sten2, self.sten_right)
-            self.screen.blit(self.sten, self.sten_verh_dal)
-            self.screen.blit(self.sten, self.sten_niz_dal)
-            self.screen.blit(self.sten2, self.sten_left_dal)
-            self.screen.blit(self.sten2, self.sten_right_dal)
-            pygame.display.update()
         pygame.quit()
 
+        # First level screen
+        # обновляешь экран, формируешь новую картинку, новый игровой цикл,
+
+    def error(self, screen, width, height):
+        font = pygame.font.Font(None, 50)
+        text = font.render("Вы не выбрали карту", True, (255, 0, 0))
+        text_x = width // 2 - text.get_width() // 2
+        screen.blit(text, (text_x, 520))
+
+    def draw_menu(self, screen, width, height):
+        font = pygame.font.Font(None, 50)
+        text = font.render("Танчики", True, (100, 255, 100))
+        text_start = font.render("Играть", True, (100, 255, 100))
+        text_x = width // 2 - text.get_width() // 2
+        text_x_start = width // 2 - text_start.get_width() // 2
+        text_y = height - 105 - text_start.get_height() // 2
+        text_w = text_start.get_width()
+        text_h = text_start.get_height()
+        screen.blit(text, (text_x, 100))
+        screen.blit(text_start, (text_x_start, screen.get_height() - 120))
+        self.start_game_btn_coords = (text_x_start - 10, text_y - 10,
+                                      text_w + 20, text_h + 20)
+        pygame.draw.rect(screen, (0, 255, 0), self.start_game_btn_coords, 1)
+        self.map_1_size = (width - 730, height - 500, 300, 300)
+        pygame.draw.rect(screen, (0, 255, 0), self.map_1_size, 1)
+        self.map_2_size = (width - 350, height - 500, 300, 300)
+        pygame.draw.rect(screen, (0, 255, 0), self.map_2_size, 1)
+
+
+def draw_lvl(screen, choose_maps, maps_1, maps_2):
+    if choose_maps == 'map_1':
+        print(maps_1, map_1)
+        pygame.draw.rect(screen, (0, 255, 0), maps_1, 0)
+        pygame.draw.rect(screen, (0, 0, 0), maps_2, 0)
+        pygame.draw.rect(screen, (0, 255, 0), maps_2, 1)
+    if choose_maps == 'map_2':
+        pygame.draw.rect(screen, (0, 0, 0), maps_1, 0)
+        pygame.draw.rect(screen, (0, 255, 0), maps_1, 1)
+        pygame.draw.rect(screen, (0, 255, 0), maps_2, 0)
+    pygame.display.flip()
+
+class Play:
+    def __init__(self, screen, size_map_1, size_map_2, chosen_map):
+        self.size_map_1 = size_map_1
+        self.size_map_2 = size_map_2
+        self.ch_map = chosen_map
+
 if __name__ == '__main__':
-    pygame.init()
-    pygame.display.set_caption('Танки')
-    size = width, height = 800, 800
-    screen = pygame.display.set_mode(size)
-    lv = Level(screen)
-    lv.sickl()
+    Otobraz()
