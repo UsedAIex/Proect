@@ -1,12 +1,23 @@
 import os
 import sys
+import time
 
 import pygame
 
+tit1 = time.time()
 pygame.init()
+hits = None
+FPS = 10
+WIDTH = 800
+HEIGHT = 800
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+clock = pygame.time.Clock()
 
-choose_map = None
-sprite = pygame.sprite.Sprite()
+all_sprites = pygame.sprite.Group()
+green_tank = pygame.sprite.Group()
+blue_tank = pygame.sprite.Group()
+bullets = pygame.sprite.Group()
+tiles_group = pygame.sprite.Group()
 
 
 def terminate():
@@ -49,8 +60,7 @@ def load_image(name, color_key=None):
 
 
 def generate_level(level):
-    new_player1, new_player2, x, y = None, None, None, None
-    players = []
+    x, y = None, None
     for y in range(len(level)):
         for x in range(len(level[y])):
             if level[y][x] == '.':
@@ -59,11 +69,8 @@ def generate_level(level):
                 Tile('wall', x, y)
             elif level[y][x] == '@':
                 Tile('empty', x, y)
-                players.append((x, y))
-    new_player1 = players[0]
-    new_player2 = players[1]
     # вернем игрока, а также размер поля в клетках
-    return new_player1, new_player2, x, y
+    return x, y
 
 
 class Tile(pygame.sprite.Sprite):
@@ -72,6 +79,195 @@ class Tile(pygame.sprite.Sprite):
         self.image = tile_images[tile_type]
         self.rect = self.image.get_rect().move(
             tile_width * pos_x, tile_height * pos_y)
+
+
+class AnimatedSprite(pygame.sprite.Sprite):
+    def __init__(self, x, y, lastMove, color="green"):
+        if color == "green":
+            super().__init__(all_sprites, green_tank)
+            self.group = green_tank
+        else:
+            super().__init__(all_sprites, blue_tank)
+            self.group = blue_tank
+        super().__init__(tiles_group, all_sprites)
+        self.tiles_group = tiles_group
+        self.speed = 5
+        self.lastMove = lastMove
+        self.set_images(color)
+        self.set_image()
+        self.update_image()
+        self.rect = pygame.Rect(0, 0, self.image.get_width(), self.image.get_height())
+        self.rect = self.rect.move(x, y)
+        self.rect.centerx = self.rect.x
+        self.rect.bottom = self.rect.y
+
+    def set_images(self, color):
+        if color == "green":
+            self.images_up = [
+                load_image("tank1.png", -1), load_image("tank2.png", -1), load_image("tank3.png", -1),
+                load_image("tank4.png", -1), load_image("tank5.png", -1), load_image("tank6.png", -1),
+                load_image("tank7.png", -1), load_image("tank8.png", -1),
+            ]
+            self.images_right = [
+                load_image('tank_right1.png', -1), load_image('tank_right2.png', -1), load_image('tank_right3.png', -1),
+                load_image('tank_right4.png', -1), load_image('tank_right5.png', -1),
+                load_image('tank_right6.png', -1), load_image('tank_right7.png', -1), load_image('tank_right8.png', -1)]
+            self.images_left = [load_image('tank_laft1.png', -1), load_image('tank_laft2.png', -1),
+                                load_image('tank_laft3.png', -1),
+                                load_image('tank_laft4.png', -1), load_image('tank_laft5.png', -1),
+                                load_image('tank_laft6.png', -1),
+                                load_image('tank_laft7.png', -1), load_image('tank_laft8.png', -1)]
+            self.images_down = [load_image('tank_back1.png', -1), load_image('tank_back2.png', -1),
+                                load_image('tank_back3.png', -1),
+                                load_image('tank_back4.png', -1), load_image('tank_back5.png', -1),
+                                load_image('tank_back6.png', -1),
+                                load_image('tank_back7.png', -1), load_image('tank_back8.png', -1)]
+        else:
+            self.images_down = [load_image('tank_blue1.png', -1), load_image('tank_blue2.png', -1),
+                                load_image('tank_blue3.png', -1),
+                                load_image('tank_blue4.png', -1), load_image('tank_blue5.png', -1),
+                                load_image('tank_blue6.png', -1),
+                                load_image('tank_blue7.png', -1), load_image('tank_blue8.png', -1)]
+            self.images_up = [load_image('tank_blue_back1.png', -1), load_image('tank_blue_back2.png', -1),
+                              load_image('tank_blue_back3.png', -1),
+                              load_image('tank_blue_back4.png', -1), load_image('tank_blue_back5.png'),
+                              load_image('tank_blue_back6.png', -1),
+                              load_image('tank_blue_back7.png', -1), load_image('tank_blue_back8.png', -1)]
+            self.images_left = [load_image('tank_blue_laft1.png', -1), load_image('tank_blue_laft2.png', -1),
+                                load_image('tank_blue_laft3.png', -1), load_image('tank_blue_laft4.png', -1),
+                                load_image('tank_blue_laft5.png', -1), load_image('tank_blue_laft6.png', -1),
+                                load_image('tank_blue_laft7.png', -1), load_image('tank_blue_laft8.png', -1)]
+            self.images_right = [load_image('tank_blue_right1.png', -1), load_image('tank_blue_right2.png', -1),
+                                 load_image('tank_blue_right3.png', -1), load_image('tank_blue_right4.png', -1),
+                                 load_image('tank_blue_right5.png', -1), load_image('tank_blue_right6.png', -1),
+                                 load_image('tank_blue_right7.png', -1), load_image('tank_blue_right8.png', -1)]
+
+    def set_image(self):
+        self.count = 0
+        self.image = self.images_up[self.count % len(self.images_up)]
+        self.direction = "up"
+
+    def update_image(self):
+        if self.direction == "up":
+            self.image = self.images_up[self.count % len(self.images_up)]
+        elif self.direction == "down":
+            self.image = self.images_down[self.count % len(self.images_down)]
+        elif self.direction == "left":
+            self.image = self.images_left[self.count % len(self.images_left)]
+        elif self.direction == "right":
+            self.image = self.images_right[self.count % len(self.images_right)]
+        elif self.direction == "stop":
+            if self.lastMove == 'up':
+                self.image = self.images_up[0]
+
+            elif self.lastMove == 'left':
+                self.image = self.images_left[0]
+
+            elif self.lastMove == 'right':
+                self.image = self.images_right[0]
+            elif self.lastMove == 'down':
+                self.image = self.images_down[0]
+        self.count += 1
+
+    def update(self):
+        self.update_image()
+
+    def move(self, direction, lastMove):
+        self.direction = direction
+        self.lastMove = lastMove
+        if self.direction == "up":
+            self.rect.y -= self.speed
+        elif self.direction == "down":
+            self.rect.y += self.speed
+        elif self.direction == "left":
+            self.rect.x -= self.speed
+        elif self.direction == "right":
+            self.rect.x += self.speed
+        elif self.direction == "stop":
+            self.rect.x += 0
+            self.rect.y += 0
+        self.colision()
+
+    def shot(self, color='green'):
+        if self.lastMove == 'up':
+            bullet = Bullet(self.rect.centerx, self.rect.top, self.lastMove, color)
+        elif self.lastMove == 'down':
+            bullet = Bullet(self.rect.centerx, self.rect.bottom + 10, self.lastMove, color)
+        elif self.lastMove == 'left':
+            bullet = Bullet(self.rect.topleft[0] - 10, self.rect.topleft[1] + 35, self.lastMove, color)
+        elif self.lastMove == 'right':
+            bullet = Bullet(self.rect.topright[0] + 15, self.rect.topright[1] + 35, self.lastMove, color)
+        all_sprites.add(bullet)
+        bullets.add(bullet)
+
+    def colision(self):
+        another_tank = pygame.sprite.spritecollideany(self,
+                                                      blue_tank if self.group == green_tank else green_tank)
+        if another_tank or hits:
+            if self.direction == "up":
+                self.rect.y += self.speed
+            elif self.direction == "down":
+                self.rect.y -= self.speed
+            elif self.direction == "left":
+                self.rect.x += self.speed
+            elif self.direction == "right":
+                self.rect.x -= self.speed
+
+
+class Bullet(pygame.sprite.Sprite):
+    def __init__(self, x, y, lastMove, color):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((10, 10))
+        self.image.fill('YELLOW')
+        self.color = color
+        self.rect = self.image.get_rect()
+        self.lastMove = lastMove
+        self.rect.bottom = y
+        self.rect.centerx = x
+        if lastMove == 'up':
+            self.speedx = 0
+            self.speedy = -10
+        elif lastMove == 'down':
+            self.speedx = 0
+            self.speedy = 10
+        elif lastMove == 'left':
+            self.speedx = -10
+            self.speedy = 0
+        elif lastMove == 'right':
+            self.speedx = 10
+            self.speedy = 0
+
+    def update(self):
+        global blue_bulletss
+        global green_bulletss
+        self.rect.y += self.speedy
+        self.rect.x += self.speedx
+        if self.color == 'green':
+            if self.rect.bottom < 0:
+                self.kill()
+                green_bulletss += 1
+        elif self.color == 'blue':
+            if self.rect.bottom < 0:
+                self.kill()
+                blue_bulletss += 1
+
+
+tile_images = {
+    'wall': load_image('wall.png'),
+    'empty': load_image('floor.png')
+}
+
+tile_width = tile_height = 50
+
+# группы спрайтов
+
+
+blue_bulletss = 4
+green_bulletss = 4
+
+pygame.init()
+choose_map = None
+sprite = pygame.sprite.Sprite()
 
 
 class Otobraz:
@@ -137,7 +333,6 @@ class Otobraz:
             if game_start:
                 break
 
-
     def draw_list(self, width, height):
         screen.blit(background, (0, 0))
         font_txt = pygame.font.Font(None, 35)
@@ -148,7 +343,6 @@ class Otobraz:
                            txt_back.get_width() + 20, txt_back.get_height() + 20)
         pygame.draw.rect(screen, (255, 255, 0), self.list_fight, 1)
         self.back_work = True
-
 
         # First level screen
         # обновляешь экран, формируешь новую картинку, новый игровой цикл,
@@ -188,6 +382,57 @@ class Otobraz:
         pygame.draw.rect(screen, (255, 255, 0), self.list_fight, 1)
 
 
+class Final_menu:
+    def __init__(self, times, bullet, winner='12'):
+        size = width, height = 800, 800
+        screen = pygame.display.set_mode(size)
+        pygame.display.set_caption("Тесты")
+        times = times[:3]
+        self.game(screen, width, height, winner, times, bullet)
+
+        # First level screen
+        # обновляешь экран, формируешь новую картинку, новый игровой цикл,
+
+    def game(self, screen, width, height, winner, time, bullet):
+        self.draw_menu(screen, width, height, winner, time, bullet)
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    terminate()
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if (self.list_fight[0] < event.pos[0] < self.list_fight[2] + self.list_fight[0] and
+                            self.list_fight[1] < event.pos[1] < self.list_fight[3] + self.list_fight[1]):
+                        Otobraz()
+            pygame.display.flip()
+
+    def draw_menu(self, screen, width, height, winner, time, bullet):
+        screen.blit(background, (0, 0))
+        font = pygame.font.Font(None, 50)
+        font_text = pygame.font.Font(None, 35)
+        text = font.render("Игра окончена", True, (255, 255, 0))
+        text_x = width // 2 - text.get_width() // 2
+        text_y = height // 2 - 280
+        text_winner = font_text.render('Выиграл: ' + winner, True, (255, 255, 0))
+        x_win = width // 2 - text_winner.get_width() // 2
+        y_win = height // 2 - 190
+        text_time = font_text.render('Время боя: ' + time, True, (255, 255, 0))
+        x_time = width // 2 - text.get_width() // 2 - 200
+        y_time = height // 2 - 100
+        text_bullet = font_text.render('Количество выстрелов: ' + bullet, True, (255, 255, 0))
+        x_bullet = width // 2 - text.get_width() // 2 - 200
+        y_bullet = height // 2 - 10
+        screen.blit(text, (text_x, text_y))
+        screen.blit(text_winner, (x_win, y_win))
+        screen.blit(text_time, (x_time, y_time))
+        screen.blit(text_bullet, (x_bullet, y_bullet))
+        txt_back = font.render('Назад', True, (255, 255, 100))
+        screen.blit(txt_back, (57, 60))
+        self.list_fight = (txt_back.get_width() - 60, txt_back.get_height() + 15,
+                           txt_back.get_width() + 20, txt_back.get_height() + 20)
+        pygame.draw.rect(screen, (255, 255, 0), self.list_fight, 1)
+
+
 def draw_lvl(screen, choose_maps, maps_1, maps_2):
     if choose_maps:
         if choose_maps == 'map_1':
@@ -196,6 +441,7 @@ def draw_lvl(screen, choose_maps, maps_1, maps_2):
             pygame.draw.rect(screen, (0, 0, 0), maps_2, 0)
             screen.blit(map_1_ig, (800 - 727, 800 - 596))
             screen.blit(map_2_ig, (800 - 347, 800 - 596))
+
         if choose_maps == 'map_2':
             pygame.draw.rect(screen, (0, 0, 0), maps_1, 0)
             pygame.draw.rect(screen, (0, 0, 0), maps_1, 1)
@@ -206,41 +452,106 @@ def draw_lvl(screen, choose_maps, maps_1, maps_2):
 
 
 def main(screen, maps):
+    global blue_bulletss
+    global green_bulletss
     clock = pygame.time.Clock()
+    lastMove_blue = 'down'
+    lastMove_green = 'up'
+    running = True
+    col_bullets_for_play = 0
     if maps == 'map_1':
-        player1, player2, level_x, level_y = generate_level(load_level('map.txt'))
+        level_x, level_y = generate_level(load_level('map.txt'))
+        dragon = AnimatedSprite(375, 750, lastMove_green)
+        dragon2 = AnimatedSprite(425, 108, lastMove_blue, color="blue")
     else:
-        player1, player2, level_x, level_y = generate_level(load_level('map2.txt'))
-    while True:
+        level_x, level_y = generate_level(load_level('map2.txt'))
+        dragon = AnimatedSprite(725, 750, lastMove_green)
+        dragon2 = AnimatedSprite(75, 108, lastMove_blue, color="blue")
+    while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                terminate()
+                running = False
 
-        # изменяем ракурс камеры
-        # обновляем положение всех спрайтов
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_x:
+                    if green_bulletss > 0:
+                        green_bulletss -= 1
+                        col_bullets_for_play += 1
+                        dragon.shot(color='green')
+
+                elif event.key == pygame.K_m:
+                    if blue_bulletss > 0:
+                        blue_bulletss -= 1
+                        col_bullets_for_play += 1
+                        dragon2.shot(color='blue')
+
+        hits = pygame.sprite.groupcollide(blue_tank, bullets, True, True)
+        hit = pygame.sprite.groupcollide(green_tank, bullets, True, True)
+
+        if hits or hit:
+            tit2 = time.time()
+            Final_menu(str(tit2 - tit1), str(col_bullets_for_play))
+            # print((tit2 - tit1))  # ВРЕМЯ РАУНДА
+            # print(col_bullets_for_play)
+
+        keys = pygame.key.get_pressed()
+        if keys[pygame.K_UP]:
+            lastMove_green = 'up'
+            dragon.move("up", lastMove_green)
+
+        elif keys[pygame.K_DOWN]:
+            lastMove_green = 'down'
+            dragon.move("down", lastMove_green)
+
+        elif keys[pygame.K_LEFT]:
+            lastMove_green = 'left'
+            dragon.move("left", lastMove_green)
+
+        elif keys[pygame.K_RIGHT]:
+            lastMove_green = 'right'
+            dragon.move("right", lastMove_green)
+
+        elif not keys[pygame.K_UP] and not keys[pygame.K_DOWN]:
+            if not keys[pygame.K_LEFT] and not keys[pygame.K_RIGHT]:
+                dragon.move("stop", lastMove_green)
+
+        if keys[pygame.K_w]:
+            lastMove_blue = 'down'
+            dragon2.move("down", lastMove_blue)
+
+        elif keys[pygame.K_s]:
+            lastMove_blue = 'up'
+            dragon2.move("up", lastMove_blue)
+
+        elif keys[pygame.K_a]:
+            lastMove_blue = 'left'
+            dragon2.move("left", lastMove_blue)
+
+        elif keys[pygame.K_d]:
+            lastMove_blue = 'right'
+            dragon2.move("right", lastMove_blue)
+
+        elif not keys[pygame.K_w] and not keys[pygame.K_s]:
+            if not keys[pygame.K_a] and not keys[pygame.K_d]:
+                dragon2.move("stop", lastMove_blue)
+
+        all_sprites.update()
+        screen.fill(pygame.Color("black"))
         all_sprites.draw(screen)
-        screen.blit(player_1, (player1[0] * 50, player1[1] * 50))
-        screen.blit(player_2, (player2[0] * 50, player2[1] * 50 - 10))
-        clock.tick(FPS)
+        all_sprites.update()
         pygame.display.flip()
+        clock.tick(FPS)
+        # screen.blit(player_1, (player1[0] * 50, player1[1] * 50))
+        # screen.blit(player_2, (player2[0] * 50, player2[1] * 50 - 10))
 
 
-FPS = 50
+
 screen = pygame.display.set_mode((800, 800))
-tile_images = {
-    'wall': load_image('wall.png'),
-    'empty': load_image('floor.png')
-}
-player_1 = load_image('blue_tank.png', -1)
-player_2 = load_image('green_tank.png', -1)
 
-tile_width = tile_height = 50
 background = load_image('menu.png')
 map_1_ig = load_image('map_one_image.png')
 map_2_ig = load_image('map_two_image.png')
-# группы спрайтов
-all_sprites = pygame.sprite.Group()
-tiles_group = pygame.sprite.Group()
+
 player_group = pygame.sprite.Group()
 
 if __name__ == '__main__':
