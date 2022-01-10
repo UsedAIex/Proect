@@ -4,7 +4,8 @@ import time
 
 import pygame
 
-tit1 = time.time()
+from bd_file import Help_db
+
 pygame.init()
 hits = None
 FPS = 10
@@ -12,12 +13,15 @@ WIDTH = 800
 HEIGHT = 800
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 clock = pygame.time.Clock()
+# helper = None
+helper = Help_db()
 
 all_sprites = pygame.sprite.Group()
 green_tank = pygame.sprite.Group()
 blue_tank = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
+wall_group = pygame.sprite.Group()
 
 
 def terminate():
@@ -67,8 +71,6 @@ def generate_level(level):
                 Tile('empty', x, y)
             elif level[y][x] == '#':
                 Tile('wall', x, y)
-            elif level[y][x] == '@':
-                Tile('empty', x, y)
     # вернем игрока, а также размер поля в клетках
     return x, y
 
@@ -79,7 +81,11 @@ class Tile(pygame.sprite.Sprite):
         self.image = tile_images[tile_type]
         self.rect = self.image.get_rect().move(
             tile_width * pos_x, tile_height * pos_y)
-
+        if tile_type == 'wall':
+            super().__init__(wall_group, all_sprites)
+            self.image = tile_images[tile_type]
+            self.rect = self.image.get_rect().move(
+                tile_width * pos_x, tile_height * pos_y)
 
 class AnimatedSprite(pygame.sprite.Sprite):
     def __init__(self, x, y, lastMove, color="green"):
@@ -100,6 +106,7 @@ class AnimatedSprite(pygame.sprite.Sprite):
         self.rect = self.rect.move(x, y)
         self.rect.centerx = self.rect.x
         self.rect.bottom = self.rect.y
+        self.next_wall = None
 
     def set_images(self, color):
         if color == "green":
@@ -175,18 +182,19 @@ class AnimatedSprite(pygame.sprite.Sprite):
     def move(self, direction, lastMove):
         self.direction = direction
         self.lastMove = lastMove
-        if self.direction == "up":
-            self.rect.y -= self.speed
-        elif self.direction == "down":
-            self.rect.y += self.speed
-        elif self.direction == "left":
-            self.rect.x -= self.speed
-        elif self.direction == "right":
-            self.rect.x += self.speed
-        elif self.direction == "stop":
-            self.rect.x += 0
-            self.rect.y += 0
-        self.colision()
+        if not self.next_wall:
+            if self.direction == "up":
+                self.rect.y -= self.speed
+            elif self.direction == "down":
+                self.rect.y += self.speed
+            elif self.direction == "left":
+                self.rect.x -= self.speed
+            elif self.direction == "right":
+                self.rect.x += self.speed
+            elif self.direction == "stop":
+                self.rect.x += 0
+                self.rect.y += 0
+            self.colision()
 
     def shot(self, color='green'):
         if self.lastMove == 'up':
@@ -203,7 +211,8 @@ class AnimatedSprite(pygame.sprite.Sprite):
     def colision(self):
         another_tank = pygame.sprite.spritecollideany(self,
                                                       blue_tank if self.group == green_tank else green_tank)
-        if another_tank or hits:
+        wall = pygame.sprite.spritecollideany(self, wall_group)
+        if another_tank or wall:
             if self.direction == "up":
                 self.rect.y += self.speed
             elif self.direction == "down":
@@ -243,11 +252,35 @@ class Bullet(pygame.sprite.Sprite):
         self.rect.y += self.speedy
         self.rect.x += self.speedx
         if self.color == 'green':
+            if pygame.sprite.spritecollideany(self, wall_group):
+                self.kill()
+                green_bulletss += 1
             if self.rect.bottom < 0:
                 self.kill()
                 green_bulletss += 1
+            if self.rect.bottom > 800:
+                self.kill()
+                green_bulletss += 1
+            if self.rect.left > 800:
+                self.kill()
+                green_bulletss += 1
+            if self.rect.left < 0:
+                self.kill()
+                green_bulletss += 1
         elif self.color == 'blue':
+            if pygame.sprite.spritecollideany(self, wall_group):
+                self.kill()
+                blue_bulletss += 1
             if self.rect.bottom < 0:
+                self.kill()
+                blue_bulletss += 1
+            if self.rect.bottom > 800:
+                self.kill()
+                blue_bulletss += 1
+            if self.rect.left > 800:
+                self.kill()
+                blue_bulletss += 1
+            if self.rect.left < 0:
                 self.kill()
                 blue_bulletss += 1
 
@@ -278,8 +311,8 @@ class Otobraz:
         self.map_1_size = None
         self.map_2_size = None
         self.back_work = None
-
         # Start screen
+
         self.draw_menu(width, height)
         self.game(screen, width, height)
 
@@ -297,6 +330,10 @@ class Otobraz:
                             self.draw_menu(width, height)
                             draw_lvl(screen, self.choose_map, self.map_1_size, self.map_2_size)
                             self.back_work = None
+                        if (self.cleat[0] < event.pos[0] < self.cleat[2] + self.cleat[0] and
+                                self.cleat[1] < event.pos[1] < self.cleat[3] + self.cleat[1]):
+                            helper.delete_db()
+                            self.draw_list(width, height)
                     else:
                         x = self.start_game_btn_coords[0]
                         y = self.start_game_btn_coords[1]
@@ -338,12 +375,49 @@ class Otobraz:
         font_txt = pygame.font.Font(None, 35)
         screen.blit(background, (0, 0))
         txt_back = font_txt.render('Назад', True, (255, 255, 100))
-        screen.blit(txt_back, (25, 50))
-        self.list_fight = (txt_back.get_width() - 60, txt_back.get_height() + 15,
+        screen.blit(txt_back, (25, 45))
+        self.list_fight = (txt_back.get_width() - 60, txt_back.get_height() + 10,
                            txt_back.get_width() + 20, txt_back.get_height() + 20)
         pygame.draw.rect(screen, (255, 255, 0), self.list_fight, 1)
+        x = txt_back.get_width() * 2 - 40
+        pygame.draw.rect(screen, (255, 255, 0), (x, 80, width - x * 2, height - 160), 1)
+        pygame.draw.line(screen, (255, 255, 0), (x, 160), (width - x, 160), 1)
+        pygame.draw.line(screen, (255, 255, 0), (x, 240), (width - x, 240), 1)
+        pygame.draw.line(screen, (255, 255, 0), (x, 320), (width - x, 320), 1)
+        pygame.draw.line(screen, (255, 255, 0), (x, 400), (width - x, 400), 1)
+        pygame.draw.line(screen, (255, 255, 0), (x, 480), (width - x, 480), 1)
+        pygame.draw.line(screen, (255, 255, 0), (x, 560), (width - x, 560), 1)
+        pygame.draw.line(screen, (255, 255, 0), (x, 640), (width - x, 640), 1)
+        pygame.draw.line(screen, (255, 255, 0), (x, 720), (width - x, 720), 1)
+        pygame.draw.line(screen, (255, 255, 0), (x + 280, 80), (x + 280, 720), 1)
+        pygame.draw.line(screen, (255, 255, 0), (x + 280, 80), (x + 280, 720), 1)
+        pygame.draw.line(screen, (255, 255, 0), (x + 430, 80), (x + 430, 720), 1)
+        txt_1 = font_txt.render('Победитель', True, (255, 255, 100))
+        screen.blit(txt_1, (255 - txt_1.get_width() / 2, 110))
+        txt_2 = font_txt.render('Время игры', True, (255, 255, 100))
+        screen.blit(txt_2, (395, 110))
+        txt_3 = font_txt.render('Кол-во', True, (255, 255, 100))
+        screen.blit(txt_3, (570, 97))
+        txt_4 = font_txt.render('выстрелов', True, (255, 255, 100))
+        screen.blit(txt_4, (550, 123))
         self.back_work = True
-
+        data = helper.vivod()
+        count = 0
+        for i in data[::-1]:
+            if count == 7:
+                break
+            txt = font_txt.render(str(i[3]), True, (255, 255, 100))
+            screen.blit(txt, (240, count * 80 + 190))
+            txt = font_txt.render(str(i[1]), True, (255, 255, 100))
+            screen.blit(txt, (490 - txt.get_width(), count * 80 + 190))
+            txt = font_txt.render(str(i[2]), True, (255, 255, 100))
+            screen.blit(txt, (620 - txt.get_width(), count * 80 + 190))
+            count += 1
+        txt_clear = font_txt.render('Очистить историю', True, (255, 255, 100))
+        screen.blit(txt_clear, (width - 250, height - 45))
+        self.cleat = (800 - txt_clear.get_width() - 35, 800 - txt_clear.get_height() - 30,
+                           txt_clear.get_width() + 20, txt_clear.get_height() + 20)
+        pygame.draw.rect(screen, (255, 255, 0), self.cleat, 1)
         # First level screen
         # обновляешь экран, формируешь новую картинку, новый игровой цикл,
 
@@ -387,7 +461,7 @@ class Final_menu:
         size = width, height = 800, 800
         screen = pygame.display.set_mode(size)
         pygame.display.set_caption("Тесты")
-        times = times[:3]
+        times = times[:4]
         self.game(screen, width, height, winner, times, bullet)
 
         # First level screen
@@ -407,6 +481,7 @@ class Final_menu:
             pygame.display.flip()
 
     def draw_menu(self, screen, width, height, winner, time, bullet):
+        helper.add_db(time, bullet, winner)
         screen.blit(background, (0, 0))
         font = pygame.font.Font(None, 50)
         font_text = pygame.font.Font(None, 35)
@@ -426,9 +501,9 @@ class Final_menu:
         screen.blit(text_winner, (x_win, y_win))
         screen.blit(text_time, (x_time, y_time))
         screen.blit(text_bullet, (x_bullet, y_bullet))
-        txt_back = font.render('Назад', True, (255, 255, 100))
+        txt_back = font.render('В меню', True, (255, 255, 100))
         screen.blit(txt_back, (57, 60))
-        self.list_fight = (txt_back.get_width() - 60, txt_back.get_height() + 15,
+        self.list_fight = (txt_back.get_width() - 80, txt_back.get_height() + 15,
                            txt_back.get_width() + 20, txt_back.get_height() + 20)
         pygame.draw.rect(screen, (255, 255, 0), self.list_fight, 1)
 
@@ -452,6 +527,8 @@ def draw_lvl(screen, choose_maps, maps_1, maps_2):
 
 
 def main(screen, maps):
+    tit1 = time.time()
+    global wall_group
     global blue_bulletss
     global green_bulletss
     clock = pygame.time.Clock()
@@ -460,18 +537,17 @@ def main(screen, maps):
     running = True
     col_bullets_for_play = 0
     if maps == 'map_1':
-        level_x, level_y = generate_level(load_level('map.txt'))
+        level_x, level_y = generate_level(load_level('../map.txt'))
         dragon = AnimatedSprite(375, 750, lastMove_green)
         dragon2 = AnimatedSprite(425, 108, lastMove_blue, color="blue")
     else:
-        level_x, level_y = generate_level(load_level('map2.txt'))
+        level_x, level_y = generate_level(load_level('../map2.txt'))
         dragon = AnimatedSprite(725, 750, lastMove_green)
         dragon2 = AnimatedSprite(75, 108, lastMove_blue, color="blue")
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
-
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_x:
                     if green_bulletss > 0:
@@ -489,10 +565,11 @@ def main(screen, maps):
         hit = pygame.sprite.groupcollide(green_tank, bullets, True, True)
 
         if hits or hit:
+            blue_bulletss = 4
+            green_bulletss = 4
             tit2 = time.time()
+            wall_group = pygame.sprite.Group()
             Final_menu(str(tit2 - tit1), str(col_bullets_for_play))
-            # print((tit2 - tit1))  # ВРЕМЯ РАУНДА
-            # print(col_bullets_for_play)
 
         keys = pygame.key.get_pressed()
         if keys[pygame.K_UP]:
@@ -516,12 +593,12 @@ def main(screen, maps):
                 dragon.move("stop", lastMove_green)
 
         if keys[pygame.K_w]:
-            lastMove_blue = 'down'
-            dragon2.move("down", lastMove_blue)
-
-        elif keys[pygame.K_s]:
             lastMove_blue = 'up'
             dragon2.move("up", lastMove_blue)
+
+        elif keys[pygame.K_s]:
+            lastMove_blue = 'down'
+            dragon2.move("down", lastMove_blue)
 
         elif keys[pygame.K_a]:
             lastMove_blue = 'left'
@@ -543,7 +620,6 @@ def main(screen, maps):
         clock.tick(FPS)
         # screen.blit(player_1, (player1[0] * 50, player1[1] * 50))
         # screen.blit(player_2, (player2[0] * 50, player2[1] * 50 - 10))
-
 
 
 screen = pygame.display.set_mode((800, 800))
