@@ -9,7 +9,6 @@ choose_map = None
 sprite = pygame.sprite.Sprite()
 
 
-
 def terminate():
     pygame.quit()
     sys.exit()
@@ -48,6 +47,7 @@ def load_image(name, color_key=None):
         image = image.convert_alpha()
     return image
 
+
 def generate_level(level):
     new_player1, new_player2, x, y = None, None, None, None
     players = []
@@ -73,11 +73,6 @@ class Tile(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(
             tile_width * pos_x, tile_height * pos_y)
 
-class Player(pygame.sprite.Sprite):
-    def __init__(self, pos_x, pos_y):
-        super().__init__(player_group, all_sprites)
-        self.image = player_1
-
 
 class Otobraz:
     def __init__(self):
@@ -86,9 +81,10 @@ class Otobraz:
         self.choose_map = choose_map
         self.map_1_size = None
         self.map_2_size = None
+        self.back_work = None
 
         # Start screen
-        self.draw_menu(screen, width, height)
+        self.draw_menu(width, height)
         self.game(screen, width, height)
 
     def game(self, screen, width, height):
@@ -99,37 +95,60 @@ class Otobraz:
                 if event.type == pygame.QUIT:
                     terminate()
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    x = self.start_game_btn_coords[0]
-                    y = self.start_game_btn_coords[1]
-                    x1 = x + self.start_game_btn_coords[2]
-                    y1 = y + self.start_game_btn_coords[3]
-                    if self.map_1_size:
-                        x_map_1 = self.map_1_size[0]
-                        y_map_1 = self.map_1_size[1]
-                        x1_map_1 = x_map_1 + self.map_1_size[2]
-                        y1_map_1 = y_map_1 + self.map_1_size[3]
-                        if x_map_1 < event.pos[0] < x1_map_1 and y_map_1 < event.pos[1] < y1_map_1:
-                            self.choose_map = 'map_1'
+                    if self.back_work:
+                        if (self.list_fight[0] < event.pos[0] < self.list_fight[2] + self.list_fight[0] and
+                                self.list_fight[1] < event.pos[1] < self.list_fight[3] + self.list_fight[1]):
+                            self.draw_menu(width, height)
                             draw_lvl(screen, self.choose_map, self.map_1_size, self.map_2_size)
-                    if self.map_2_size:
-                        x_map_2 = self.map_2_size[0]
-                        y_map_2 = self.map_2_size[1]
-                        x2_map_2 = x_map_2 + self.map_2_size[2]
-                        y2_map_2 = y_map_2 + self.map_2_size[3]
-                        if x_map_2 < event.pos[0] < x2_map_2 and y_map_2 < event.pos[1] < y2_map_2:
-                            self.choose_map = 'map_2'
-                            draw_lvl(screen, self.choose_map, self.map_1_size, self.map_2_size)
-                    if x < event.pos[0] < x1 and y < event.pos[1] < y1:
-                        if not self.choose_map:
-                            self.error(screen, width, height)
-                        else:
-                            main(screen, self.choose_map)
-                            game_start = True
-                            break
+                            self.back_work = None
+                    else:
+                        x = self.start_game_btn_coords[0]
+                        y = self.start_game_btn_coords[1]
+                        x1 = x + self.start_game_btn_coords[2]
+                        y1 = y + self.start_game_btn_coords[3]
+                        if self.map_1_size:
+                            x_map_1 = self.map_1_size[0]
+                            y_map_1 = self.map_1_size[1]
+                            x1_map_1 = x_map_1 + self.map_1_size[2]
+                            y1_map_1 = y_map_1 + self.map_1_size[3]
+                            if x_map_1 < event.pos[0] < x1_map_1 and y_map_1 < event.pos[1] < y1_map_1:
+                                self.choose_map = 'map_1'
+                                draw_lvl(screen, self.choose_map, self.map_1_size, self.map_2_size)
+                        if self.map_2_size:
+                            x_map_2 = self.map_2_size[0]
+                            y_map_2 = self.map_2_size[1]
+                            x2_map_2 = x_map_2 + self.map_2_size[2]
+                            y2_map_2 = y_map_2 + self.map_2_size[3]
+                            if x_map_2 < event.pos[0] < x2_map_2 and y_map_2 < event.pos[1] < y2_map_2:
+                                self.choose_map = 'map_2'
+                                draw_lvl(screen, self.choose_map, self.map_1_size, self.map_2_size)
+                        if (self.list_fight[0] < event.pos[0] < self.list_fight[2] + self.list_fight[0] and
+                                self.list_fight[1] < event.pos[1] < self.list_fight[3] + self.list_fight[1]):
+                            self.draw_list(width, height)
 
+                        if x < event.pos[0] < x1 and y < event.pos[1] < y1:
+                            if not self.choose_map:
+                                self.error(screen, width, height)
+                            else:
+                                main(screen, self.choose_map)
+                                game_start = True
+                                break
             pygame.display.flip()
             if game_start:
                 break
+
+
+    def draw_list(self, width, height):
+        screen.blit(background, (0, 0))
+        font_txt = pygame.font.Font(None, 35)
+        screen.blit(background, (0, 0))
+        txt_back = font_txt.render('Назад', True, (255, 255, 100))
+        screen.blit(txt_back, (25, 50))
+        self.list_fight = (txt_back.get_width() - 60, txt_back.get_height() + 15,
+                           txt_back.get_width() + 20, txt_back.get_height() + 20)
+        pygame.draw.rect(screen, (255, 255, 0), self.list_fight, 1)
+        self.back_work = True
+
 
         # First level screen
         # обновляешь экран, формируешь новую картинку, новый игровой цикл,
@@ -138,55 +157,60 @@ class Otobraz:
         font = pygame.font.Font(None, 50)
         text = font.render("Вы не выбрали карту", True, (255, 0, 0))
         text_x = width // 2 - text.get_width() // 2
-        screen.blit(text, (text_x, height - 180))
+        screen.blit(text, (text_x, height - 230))
 
-    def draw_menu(self, screen, width, height):
+    def draw_menu(self, width, height):
         screen.blit(background, (0, 0))
         font = pygame.font.Font(None, 50)
+        font_txt = pygame.font.Font(None, 35)
         text = font.render("Танчики", True, (255, 255, 100))
         text_start = font.render("Играть", True, (255, 255, 100))
         text_x = width // 2 - text.get_width() // 2
         text_x_start = width // 2 - text_start.get_width() // 2
-        text_y = height - 105 - text_start.get_height() // 2
+        text_y = height - 155 - text_start.get_height() // 2
         text_w = text_start.get_width()
         text_h = text_start.get_height()
         screen.blit(text, (text_x, 100))
-        screen.blit(text_start, (text_x_start, screen.get_height() - 120))
+        screen.blit(text_start, (text_x_start, screen.get_height() - 170))
         self.start_game_btn_coords = (text_x_start - 10, text_y - 10,
                                       text_w + 20, text_h + 20)
         pygame.draw.rect(screen, (255, 255, 0), self.start_game_btn_coords, 1)
-        self.map_1_size = (width - 731, height - 500, 303, 300)
+        self.map_1_size = (width - 731, height - 600, 303, 300)
         pygame.draw.rect(screen, (0, 0, 0), self.map_1_size, 0)
-        screen.blit(map_1_ig, (width - 727, height - 496))
-        self.map_2_size = (width - 351, height - 500, 303, 300)
+        screen.blit(map_1_ig, (width - 727, height - 596))
+        self.map_2_size = (width - 351, height - 600, 303, 300)
         pygame.draw.rect(screen, (0, 0, 0), self.map_2_size, 0)
-        screen.blit(map_2_ig, (width - 347, height - 496))
+        screen.blit(map_2_ig, (width - 347, height - 596))
+        txt_fight = font_txt.render('Данные боя', True, (255, 255, 100))
+        screen.blit(txt_fight, (width // 2 - txt_fight.get_width() // 2, height - 100))
+        self.list_fight = (width // 2 - txt_fight.get_width() // 2 - 10, height - 110,
+                           txt_fight.get_width() + 20, txt_fight.get_height() + 20)
+        pygame.draw.rect(screen, (255, 255, 0), self.list_fight, 1)
 
 
 def draw_lvl(screen, choose_maps, maps_1, maps_2):
-    if choose_maps == 'map_1':
-        pygame.draw.rect(screen, (255, 0, 0), maps_1, 0)
-        pygame.draw.rect(screen, (0, 0, 0), maps_2, 0)
-        pygame.draw.rect(screen, (0, 0, 0), maps_2, 0)
-        screen.blit(map_1_ig, (800 - 727, 800 - 496))
-        screen.blit(map_2_ig, (800 - 347, 800 - 496))
-
-    if choose_maps == 'map_2':
-        pygame.draw.rect(screen, (0, 0, 0), maps_1, 0)
-        pygame.draw.rect(screen, (0, 0, 0), maps_1, 1)
-        pygame.draw.rect(screen, (255, 0, 0), maps_2, 0)
-        screen.blit(map_1_ig, (800 - 727, 800 - 496))
-        screen.blit(map_2_ig, (800 - 347, 800 - 496))
-    pygame.display.flip()
+    if choose_maps:
+        if choose_maps == 'map_1':
+            pygame.draw.rect(screen, (255, 0, 0), maps_1, 0)
+            pygame.draw.rect(screen, (0, 0, 0), maps_2, 0)
+            pygame.draw.rect(screen, (0, 0, 0), maps_2, 0)
+            screen.blit(map_1_ig, (800 - 727, 800 - 596))
+            screen.blit(map_2_ig, (800 - 347, 800 - 596))
+        if choose_maps == 'map_2':
+            pygame.draw.rect(screen, (0, 0, 0), maps_1, 0)
+            pygame.draw.rect(screen, (0, 0, 0), maps_1, 1)
+            pygame.draw.rect(screen, (255, 0, 0), maps_2, 0)
+            screen.blit(map_1_ig, (800 - 727, 800 - 596))
+            screen.blit(map_2_ig, (800 - 347, 800 - 596))
+        pygame.display.flip()
 
 
 def main(screen, maps):
     clock = pygame.time.Clock()
     if maps == 'map_1':
-        player1, player2, level_x, level_y = generate_level(load_level('Рисунки/map.txt'))
+        player1, player2, level_x, level_y = generate_level(load_level('map.txt'))
     else:
-        player1, player2, level_x, level_y = generate_level(load_level('Рисунки/map2.txt'))
-
+        player1, player2, level_x, level_y = generate_level(load_level('map2.txt'))
     while True:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
