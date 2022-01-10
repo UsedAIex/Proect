@@ -1,15 +1,19 @@
-import pygame
-import sys
 import os
+import sys
+
+import pygame
+
+pygame.init()
 
 choose_map = None
-map_1 = None
-map_2 = None
-pygame.init()
+sprite = pygame.sprite.Sprite()
+
+
 
 def terminate():
     pygame.quit()
     sys.exit()
+
 
 def load_level(filename):
     fullname = os.path.join(filename)
@@ -27,13 +31,21 @@ def load_level(filename):
     # дополняем каждую строку пустыми клетками ('.')
     return list(map(lambda x: x.ljust(max_width, '.'), level_map))
 
-def load_image(name, colorkey=None):
+
+def load_image(name, color_key=None):
     fullname = os.path.join(name)
-    # если файл не существует, то выходим
-    if not os.path.isfile(fullname):
-        print(f"Файл с изображением '{fullname}' не найден")
-        terminate()
-    image = pygame.image.load(fullname)
+    try:
+        image = pygame.image.load(fullname).convert()
+    except pygame.error as message:
+        print('Cannot load image:', name)
+        raise SystemExit(message)
+
+    if color_key is not None:
+        if color_key == -1:
+            color_key = image.get_at((0, 0))
+        image.set_colorkey(color_key)
+    else:
+        image = image.convert_alpha()
     return image
 
 def generate_level(level):
@@ -45,6 +57,11 @@ def generate_level(level):
                 Tile('empty', x, y)
             elif level[y][x] == '#':
                 Tile('wall', x, y)
+            elif level[y][x] == '@':
+                Tile('empty', x, y)
+                players.append((x, y))
+    new_player1 = players[0]
+    new_player2 = players[1]
     # вернем игрока, а также размер поля в клетках
     return new_player1, new_player2, x, y
 
@@ -56,16 +73,19 @@ class Tile(pygame.sprite.Sprite):
         self.rect = self.image.get_rect().move(
             tile_width * pos_x, tile_height * pos_y)
 
+class Player(pygame.sprite.Sprite):
+    def __init__(self, pos_x, pos_y):
+        super().__init__(player_group, all_sprites)
+        self.image = player_1
+
+
 class Otobraz:
     def __init__(self):
-
         size = width, height = 800, 800
-        screen = pygame.display.set_mode(size)
         pygame.display.set_caption("Тесты")
         self.choose_map = choose_map
         self.map_1_size = None
         self.map_2_size = None
-
 
         # Start screen
         self.draw_menu(screen, width, height)
@@ -111,7 +131,6 @@ class Otobraz:
             if game_start:
                 break
 
-
         # First level screen
         # обновляешь экран, формируешь новую картинку, новый игровой цикл,
 
@@ -119,14 +138,13 @@ class Otobraz:
         font = pygame.font.Font(None, 50)
         text = font.render("Вы не выбрали карту", True, (255, 0, 0))
         text_x = width // 2 - text.get_width() // 2
-        text_x = width // 2 - text.get_width() // 2
         screen.blit(text, (text_x, height - 180))
 
     def draw_menu(self, screen, width, height):
-        print(234)
+        screen.blit(background, (0, 0))
         font = pygame.font.Font(None, 50)
-        text = font.render("Танчики", True, (100, 255, 100))
-        text_start = font.render("Играть", True, (100, 255, 100))
+        text = font.render("Танчики", True, (255, 255, 100))
+        text_start = font.render("Играть", True, (255, 255, 100))
         text_x = width // 2 - text.get_width() // 2
         text_x_start = width // 2 - text_start.get_width() // 2
         text_y = height - 105 - text_start.get_height() // 2
@@ -136,34 +154,40 @@ class Otobraz:
         screen.blit(text_start, (text_x_start, screen.get_height() - 120))
         self.start_game_btn_coords = (text_x_start - 10, text_y - 10,
                                       text_w + 20, text_h + 20)
-        pygame.draw.rect(screen, (0, 255, 0), self.start_game_btn_coords, 1)
-        self.map_1_size = (width - 730, height - 500, 300, 300)
-        pygame.draw.rect(screen, (0, 255, 0), self.map_1_size, 1)
-        self.map_2_size = (width - 350, height - 500, 300, 300)
-        pygame.draw.rect(screen, (0, 255, 0), self.map_2_size, 1)
+        pygame.draw.rect(screen, (255, 255, 0), self.start_game_btn_coords, 1)
+        self.map_1_size = (width - 731, height - 500, 303, 300)
+        pygame.draw.rect(screen, (0, 0, 0), self.map_1_size, 0)
+        screen.blit(map_1_ig, (width - 727, height - 496))
+        self.map_2_size = (width - 351, height - 500, 303, 300)
+        pygame.draw.rect(screen, (0, 0, 0), self.map_2_size, 0)
+        screen.blit(map_2_ig, (width - 347, height - 496))
 
 
 def draw_lvl(screen, choose_maps, maps_1, maps_2):
     if choose_maps == 'map_1':
-        print(maps_1, map_1)
-        pygame.draw.rect(screen, (0, 255, 0), maps_1, 0)
+        pygame.draw.rect(screen, (255, 0, 0), maps_1, 0)
         pygame.draw.rect(screen, (0, 0, 0), maps_2, 0)
-        pygame.draw.rect(screen, (0, 255, 0), maps_2, 1)
+        pygame.draw.rect(screen, (0, 0, 0), maps_2, 0)
+        screen.blit(map_1_ig, (800 - 727, 800 - 496))
+        screen.blit(map_2_ig, (800 - 347, 800 - 496))
+
     if choose_maps == 'map_2':
         pygame.draw.rect(screen, (0, 0, 0), maps_1, 0)
-        pygame.draw.rect(screen, (0, 255, 0), maps_1, 1)
-        pygame.draw.rect(screen, (0, 255, 0), maps_2, 0)
+        pygame.draw.rect(screen, (0, 0, 0), maps_1, 1)
+        pygame.draw.rect(screen, (255, 0, 0), maps_2, 0)
+        screen.blit(map_1_ig, (800 - 727, 800 - 496))
+        screen.blit(map_2_ig, (800 - 347, 800 - 496))
     pygame.display.flip()
 
 
 def main(screen, maps):
     clock = pygame.time.Clock()
     if maps == 'map_1':
-        player1, player2, level_x, level_y = generate_level(load_level('map.txt'))
+        player1, player2, level_x, level_y = generate_level(load_level('Рисунки/map.txt'))
     else:
-        player1, player2, level_x, level_y = generate_level(load_level('map2.txt'))
+        player1, player2, level_x, level_y = generate_level(load_level('Рисунки/map2.txt'))
+
     while True:
-        screen.fill(pygame.Color("green"))
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 terminate()
@@ -171,19 +195,25 @@ def main(screen, maps):
         # изменяем ракурс камеры
         # обновляем положение всех спрайтов
         all_sprites.draw(screen)
-
+        screen.blit(player_1, (player1[0] * 50, player1[1] * 50))
+        screen.blit(player_2, (player2[0] * 50, player2[1] * 50 - 10))
         clock.tick(FPS)
         pygame.display.flip()
 
 
 FPS = 50
+screen = pygame.display.set_mode((800, 800))
 tile_images = {
     'wall': load_image('wall.png'),
     'empty': load_image('floor.png')
 }
+player_1 = load_image('blue_tank.png', -1)
+player_2 = load_image('green_tank.png', -1)
 
 tile_width = tile_height = 50
-
+background = load_image('menu.png')
+map_1_ig = load_image('map_one_image.png')
+map_2_ig = load_image('map_two_image.png')
 # группы спрайтов
 all_sprites = pygame.sprite.Group()
 tiles_group = pygame.sprite.Group()
