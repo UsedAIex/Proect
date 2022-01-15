@@ -1,23 +1,29 @@
 import sqlite3
-
+import os
 
 class Help_db:
     def delete_db(self):
-        con = sqlite3.connect("/Users/miaf2/PycharmProjects/Pygamepreit/bd/tank.sqlite")
+        os.chdir('..')
+        os.chdir('bd')
+        con = sqlite3.connect(os.path.join('tank.sqlite'))
         cur = con.cursor()
         cur.execute("DELETE FROM tanki")
         con.commit()
         con.close()
 
     def vivod(self):
-        con = sqlite3.connect("/Users/miaf2/PycharmProjects/Pygamepreit/bd/tank.sqlite")
+        os.chdir('..')
+        os.chdir('bd')
+        con = sqlite3.connect(os.path.join('tank.sqlite'))
         cur = con.cursor()
         asd = cur.execute('SELECT * FROM tanki').fetchall()
         con.close()
         return asd
 
     def add_db(self, time, bullet, winner_tank):
-        con = sqlite3.connect("/Users/miaf2/PycharmProjects/Pygamepreit/bd/tank.sqlite")
+        os.chdir('..')
+        os.chdir('bd')
+        con = sqlite3.connect(os.path.join('tank.sqlite'))
         cur = con.cursor()
         all = cur.execute('SELECT * FROM tanki').fetchall()
         cur.execute('INSERT INTO tanki(id, time, shoot, winner) VALUES(?, ?, ?, ?)',
@@ -26,8 +32,3 @@ class Help_db:
         con.close()
 
 
-if __name__ == '__main__':
-    g = Help_db()
-    print(g.vivod())
-    g.delete_db()
-    g.add_db(12, 23, "we")

@@ -575,13 +575,13 @@ def main(screen, maps):
             if event.type == pygame.QUIT:
                 running = False
             if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_x:
+                if event.key == pygame.K_m:
                     if green_bulletss > 0:
                         green_bulletss -= 1
                         col_bullets_for_play += 1
                         dragon.shot(color='green')
 
-                elif event.key == pygame.K_m:
+                elif event.key == pygame.K_x:
                     if blue_bulletss > 0:
                         blue_bulletss -= 1
                         col_bullets_for_play += 1
